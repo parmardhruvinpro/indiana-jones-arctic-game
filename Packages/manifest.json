@@ -1,0 +1,122 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+public class GameBootstrap : MonoBehaviour
+{
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void Bootstrap()
+    {
+        if (FindObjectOfType<GameManager>() != null)
+        {
+            return;
+        }
+
+        CreateEnvironment();
+        CreatePlayer();
+        CreateRelics();
+    }
+
+    private static void CreateEnvironment()
+    {
+        GameObject manager = new GameObject("GameManager");
+        manager.AddComponent<GameManager>();
+
+        GameObject lightObject = new GameObject("Directional Light");
+        Light light = lightObject.AddComponent<Light>();
+        light.type = LightType.Directional;
+        light.intensity = 1.2f;
+        light.color = new Color(0.8f, 0.88f, 1f);
+        light.transform.rotation = Quaternion.Euler(50f, -35f, 0f);
+
+        GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        ground.name = "Ground";
+        ground.transform.localScale = new Vector3(80f, 2f, 80f);
+        ground.transform.position = new Vector3(0f, -1f, 0f);
+        ground.GetComponent<Renderer>().material.color = new Color(0.72f, 0.86f, 0.96f);
+
+        var platformPositions = new[]
+        {
+            new Vector3(-8f, 1f, 10f),
+            new Vector3(10f, 2f, 8f),
+            new Vector3(-12f, 3f, -4f),
+            new Vector3(15f, 3f, -10f),
+            new Vector3(0f, 4f, -18f)
+        };
+
+        foreach (var position in platformPositions)
+        {
+            GameObject platform = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            platform.name = "IcePlatform";
+            platform.transform.localScale = new Vector3(6f, 1f, 6f);
+            platform.transform.position = position;
+            platform.GetComponent<Renderer>().material.color = new Color(0.7f, 0.9f, 1f);
+        }
+
+        GameObject relicCamp = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        relicCamp.name = "RelicCamp";
+        relicCamp.transform.position = new Vector3(0f, 0.4f, -23f);
+        relicCamp.transform.localScale = new Vector3(8f, 0.8f, 6f);
+        relicCamp.GetComponent<Renderer>().material.color = new Color(0.4f, 0.3f, 0.2f);
+    }
+
+    private static void CreatePlayer()
+    {
+        GameObject player = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+        player.name = "Player";
+        player.tag = "Player";
+        player.transform.position = new Vector3(0f, 1.5f, 18f);
+
+        Rigidbody rb = player.AddComponent<Rigidbody>();
+        rb.mass = 1.2f;
+        rb.drag = 0.1f;
+        rb.angularDrag = 0.1f;
+
+        player.AddComponent<PlayerController>();
+
+        GameObject camera = new GameObject("Main Camera");
+        camera.tag = "MainCamera";
+        camera.transform.position = new Vector3(0f, 4.5f, -7f);
+        Camera cam = camera.AddComponent<Camera>();
+        cam.clearFlags = CameraClearFlags.Skybox;
+        cam.fieldOfView = 60f;
+
+        CameraOrbitController cameraController = camera.AddComponent<CameraOrbitController>();
+        cameraController.target = player.transform;
+        cameraController.distance = 8f;
+        cameraController.height = 4f;
+        cameraController.rotationSpeed = 120f;
+        cameraController.yaw = 180f;
+        cameraController.pitch = 18f;
+    }
+
+    private static void CreateRelics()
+    {
+        var relics = new List<GameObject>();
+        Vector3[] positions =
+        {
+            new Vector3(-8f, 2.5f, 10f),
+            new Vector3(10f, 3.5f, 8f),
+            new Vector3(-12f, 4.5f, -4f),
+            new Vector3(15f, 4.5f, -10f),
+            new Vector3(0f, 5.5f, -18f)
+        };
+
+        foreach (var position in positions)
+        {
+            GameObject relic = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            relic.name = "Relic";
+            relic.transform.position = position;
+            relic.transform.localScale = new Vector3(0.6f, 0.9f, 0.6f);
+            relic.GetComponent<Renderer>().material.color = new Color(0.93f, 0.73f, 0.29f);
+
+            SphereCollider trigger = relic.AddComponent<SphereCollider>();
+            trigger.isTrigger = true;
+            trigger.radius = 1.5f;
+            relic.AddComponent<RelicPickup>();
+
+            relics.Add(relic);
+        }
+
+        GameManager.Instance.RegisterRelicCount(relics.Count);
+    }
+}
